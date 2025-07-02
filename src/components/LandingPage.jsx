@@ -1,42 +1,44 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import * as FiIcons from 'react-icons/fi';
-import SafeIcon from '../common/SafeIcon';
+import React, { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useAuth } from '../context/AuthContext'
+import * as FiIcons from 'react-icons/fi'
+import SafeIcon from '../common/SafeIcon'
 
-const { FiGraduationCap, FiTrendingUp, FiUsers, FiAward, FiCheck, FiEdit3, FiSave, FiX, FiEye, FiSettings, FiArrowRight, FiStar, FiTarget, FiDollarSign } = FiIcons;
+const { FiGraduationCap, FiTrendingUp, FiUsers, FiAward, FiCheck, FiEdit3, FiSave, FiX, FiEye, FiSettings, FiArrowRight, FiStar, FiTarget, FiDollarSign, FiLogIn, FiUserPlus, FiUser, FiLogOut } = FiIcons
 
 const EditableText = ({ text, onSave, className, multiline = false, placeholder = "Click to edit..." }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(text);
-  const inputRef = useRef(null);
+  const [isEditing, setIsEditing] = useState(false)
+  const [editText, setEditText] = useState(text)
+  const inputRef = useRef(null)
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
-      inputRef.current.focus();
+      inputRef.current.focus()
       if (!multiline) {
-        inputRef.current.select();
+        inputRef.current.select()
       }
     }
-  }, [isEditing, multiline]);
+  }, [isEditing, multiline])
 
   const handleSave = () => {
-    onSave(editText);
-    setIsEditing(false);
-  };
+    onSave(editText)
+    setIsEditing(false)
+  }
 
   const handleCancel = () => {
-    setEditText(text);
-    setIsEditing(false);
-  };
+    setEditText(text)
+    setIsEditing(false)
+  }
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !multiline) {
-      e.preventDefault();
-      handleSave();
+      e.preventDefault()
+      handleSave()
     } else if (e.key === 'Escape') {
-      handleCancel();
+      handleCancel()
     }
-  };
+  }
 
   if (isEditing) {
     return (
@@ -79,25 +81,29 @@ const EditableText = ({ text, onSave, className, multiline = false, placeholder 
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div 
+    <div
       className={`${className} cursor-pointer hover:bg-blue-50 hover:bg-opacity-50 rounded-lg p-2 -m-2 relative group transition-all`}
       onClick={() => setIsEditing(true)}
     >
       {text || <span className="text-gray-400">{placeholder}</span>}
-      <SafeIcon 
-        icon={FiEdit3} 
-        className="absolute -top-1 -right-1 w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-0.5 shadow-sm" 
-      />
+      <SafeIcon icon={FiEdit3} className="absolute -top-1 -right-1 w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-0.5 shadow-sm" />
     </div>
-  );
-};
+  )
+}
 
 const LandingPage = () => {
-  const [isEditMode, setIsEditMode] = useState(false);
+  const navigate = useNavigate()
+  const { isAuthenticated, user, logout } = useAuth()
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+
+  // Check if user is admin
+  const isAdmin = isAuthenticated && (user?.role === 'admin' || user?.isAdmin)
+
   const [content, setContent] = useState({
     hero: {
       title: "Transform Your Academic Success",
@@ -159,41 +165,165 @@ const LandingPage = () => {
       buttonText: "Join the Program",
       secondaryText: "Learn More"
     }
-  });
+  })
 
   const updateContent = (section, field, value, index = null) => {
     setContent(prev => {
-      const newContent = { ...prev };
+      const newContent = { ...prev }
       if (index !== null) {
-        newContent[section][index] = { ...newContent[section][index], [field]: value };
+        newContent[section][index] = { ...newContent[section][index], [field]: value }
       } else if (field) {
-        newContent[section][field] = value;
+        newContent[section][field] = value
       } else {
-        newContent[section] = value;
+        newContent[section] = value
       }
-      return newContent;
-    });
-  };
+      return newContent
+    })
+  }
+
+  const handleSignIn = () => {
+    navigate('/login')
+  }
+
+  const handleSignUp = () => {
+    navigate('/signup')
+  }
+
+  const handleLogout = () => {
+    logout()
+    setIsEditMode(false)
+    setShowUserMenu(false)
+  }
+
+  const handleDashboard = () => {
+    navigate('/analytics')
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Edit Mode Toggle */}
-      <div className="fixed top-4 right-4 z-50">
-        <button
-          onClick={() => setIsEditMode(!isEditMode)}
-          className={`px-4 py-2 rounded-lg font-medium transition-all shadow-lg ${
-            isEditMode 
-              ? 'bg-green-600 text-white hover:bg-green-700' 
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
-        >
-          <SafeIcon icon={isEditMode ? FiEye : FiSettings} className="mr-2" />
-          {isEditMode ? 'Preview Mode' : 'Edit Mode'}
-        </button>
-      </div>
+      {/* Header Navigation */}
+      <nav className="relative z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                <SafeIcon icon={FiGraduationCap} className="text-white text-xl" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-800">EduRefer</h1>
+            </div>
+
+            {/* Navigation Links */}
+            <div className="hidden md:flex items-center space-x-8">
+              <a href="#features" className="text-gray-600 hover:text-blue-600 transition-colors">Features</a>
+              <a href="#testimonials" className="text-gray-600 hover:text-blue-600 transition-colors">Testimonials</a>
+              <a href="#pricing" className="text-gray-600 hover:text-blue-600 transition-colors">Pricing</a>
+              <a href="#contact" className="text-gray-600 hover:text-blue-600 transition-colors">Contact</a>
+            </div>
+
+            {/* Auth Section */}
+            <div className="flex items-center gap-4">
+              {isAuthenticated ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <SafeIcon icon={FiUser} className="text-blue-600 text-sm" />
+                    </div>
+                    <span className="text-sm text-gray-700 hidden sm:block">{user?.email}</span>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      user?.role === 'admin' ? 'bg-red-100 text-red-700' :
+                      user?.role === 'manager' ? 'bg-blue-100 text-blue-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {user?.role}
+                    </span>
+                  </button>
+
+                  {/* User Menu Dropdown */}
+                  <AnimatePresence>
+                    {showUserMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2"
+                      >
+                        <button
+                          onClick={handleDashboard}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                        >
+                          <SafeIcon icon={FiTrendingUp} className="text-sm" />
+                          Dashboard
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => {
+                              setIsEditMode(!isEditMode)
+                              setShowUserMenu(false)
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <SafeIcon icon={isEditMode ? FiEye : FiEdit3} className="text-sm" />
+                            {isEditMode ? 'Exit Edit Mode' : 'Edit Page'}
+                          </button>
+                        )}
+                        <hr className="my-2 border-gray-200" />
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        >
+                          <SafeIcon icon={FiLogOut} className="text-sm" />
+                          Sign Out
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleSignIn}
+                    className="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-2"
+                  >
+                    <SafeIcon icon={FiLogIn} className="text-sm" />
+                    <span className="hidden sm:inline">Sign In</span>
+                  </button>
+                  <button
+                    onClick={handleSignUp}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <SafeIcon icon={FiUserPlus} className="text-sm" />
+                    <span className="hidden sm:inline">Sign Up</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Edit Mode Toggle - Only visible for admin */}
+      {isAdmin && (
+        <div className="fixed top-20 right-4 z-50">
+          <button
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={`px-4 py-2 rounded-lg font-medium transition-all shadow-lg ${
+              isEditMode 
+                ? 'bg-green-600 text-white hover:bg-green-700' 
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            <SafeIcon icon={isEditMode ? FiEye : FiSettings} className="mr-2" />
+            {isEditMode ? 'Preview Mode' : 'Edit Mode'}
+          </button>
+        </div>
+      )}
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden pt-8">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-800 opacity-10"></div>
         <div className="relative max-w-7xl mx-auto px-4 py-20 sm:py-32">
           <div className="text-center">
@@ -207,8 +337,8 @@ const LandingPage = () => {
                   <SafeIcon icon={FiGraduationCap} className="text-white text-2xl" />
                 </div>
               </div>
-              
-              {isEditMode ? (
+
+              {isEditMode && isAdmin ? (
                 <EditableText
                   text={content.hero.title}
                   onSave={(value) => updateContent('hero', 'title', value)}
@@ -221,7 +351,7 @@ const LandingPage = () => {
                 </h1>
               )}
 
-              {isEditMode ? (
+              {isEditMode && isAdmin ? (
                 <EditableText
                   text={content.hero.subtitle}
                   onSave={(value) => updateContent('hero', 'subtitle', value)}
@@ -234,7 +364,7 @@ const LandingPage = () => {
                 </h2>
               )}
 
-              {isEditMode ? (
+              {isEditMode && isAdmin ? (
                 <EditableText
                   text={content.hero.description}
                   onSave={(value) => updateContent('hero', 'description', value)}
@@ -252,9 +382,10 @@ const LandingPage = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={handleSignUp}
                   className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transition-all"
                 >
-                  {isEditMode ? (
+                  {isEditMode && isAdmin ? (
                     <EditableText
                       text={content.hero.ctaText}
                       onSave={(value) => updateContent('hero', 'ctaText', value)}
@@ -268,7 +399,11 @@ const LandingPage = () => {
                     </>
                   )}
                 </motion.button>
-                <button className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold text-lg hover:border-blue-500 hover:text-blue-600 transition-all">
+                
+                <button 
+                  onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold text-lg hover:border-blue-500 hover:text-blue-600 transition-all"
+                >
                   Learn More
                 </button>
               </div>
@@ -290,7 +425,7 @@ const LandingPage = () => {
                 className="text-center"
               >
                 <div className="text-4xl font-bold text-gray-900 mb-2">
-                  {isEditMode ? (
+                  {isEditMode && isAdmin ? (
                     <EditableText
                       text={stat.number}
                       onSave={(value) => updateContent('stats', 'number', value, index)}
@@ -302,7 +437,7 @@ const LandingPage = () => {
                   )}
                 </div>
                 <div className="text-gray-600 font-medium">
-                  {isEditMode ? (
+                  {isEditMode && isAdmin ? (
                     <EditableText
                       text={stat.label}
                       onSave={(value) => updateContent('stats', 'label', value, index)}
@@ -320,7 +455,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gray-50">
+      <section id="features" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Our Program?</h2>
@@ -341,9 +476,8 @@ const LandingPage = () => {
                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
                   <SafeIcon icon={feature.icon} className="text-blue-600 text-xl" />
                 </div>
-                
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  {isEditMode ? (
+                  {isEditMode && isAdmin ? (
                     <EditableText
                       text={feature.title}
                       onSave={(value) => updateContent('features', 'title', value, index)}
@@ -354,9 +488,8 @@ const LandingPage = () => {
                     feature.title
                   )}
                 </h3>
-                
                 <p className="text-gray-600 leading-relaxed">
-                  {isEditMode ? (
+                  {isEditMode && isAdmin ? (
                     <EditableText
                       text={feature.description}
                       onSave={(value) => updateContent('features', 'description', value, index)}
@@ -375,7 +508,7 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-white">
+      <section id="testimonials" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Success Stories</h2>
@@ -398,9 +531,8 @@ const LandingPage = () => {
                     <SafeIcon key={i} icon={FiStar} className="text-yellow-400 fill-current" />
                   ))}
                 </div>
-                
                 <blockquote className="text-gray-700 mb-6 leading-relaxed">
-                  {isEditMode ? (
+                  {isEditMode && isAdmin ? (
                     <EditableText
                       text={testimonial.content}
                       onSave={(value) => updateContent('testimonials', 'content', value, index)}
@@ -412,14 +544,13 @@ const LandingPage = () => {
                     `"${testimonial.content}"`
                   )}
                 </blockquote>
-                
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold mr-4">
                     {testimonial.name.charAt(0)}
                   </div>
                   <div>
                     <div className="font-semibold text-gray-900">
-                      {isEditMode ? (
+                      {isEditMode && isAdmin ? (
                         <EditableText
                           text={testimonial.name}
                           onSave={(value) => updateContent('testimonials', 'name', value, index)}
@@ -431,7 +562,7 @@ const LandingPage = () => {
                       )}
                     </div>
                     <div className="text-gray-600 text-sm">
-                      {isEditMode ? (
+                      {isEditMode && isAdmin ? (
                         <EditableText
                           text={testimonial.role}
                           onSave={(value) => updateContent('testimonials', 'role', value, index)}
@@ -459,7 +590,7 @@ const LandingPage = () => {
             className="text-white"
           >
             <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-              {isEditMode ? (
+              {isEditMode && isAdmin ? (
                 <EditableText
                   text={content.cta.title}
                   onSave={(value) => updateContent('cta', 'title', value)}
@@ -470,9 +601,8 @@ const LandingPage = () => {
                 content.cta.title
               )}
             </h2>
-            
             <p className="text-xl mb-12 text-blue-100 leading-relaxed">
-              {isEditMode ? (
+              {isEditMode && isAdmin ? (
                 <EditableText
                   text={content.cta.description}
                   onSave={(value) => updateContent('cta', 'description', value)}
@@ -484,14 +614,14 @@ const LandingPage = () => {
                 content.cta.description
               )}
             </p>
-            
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={handleSignUp}
                 className="px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transition-all"
               >
-                {isEditMode ? (
+                {isEditMode && isAdmin ? (
                   <EditableText
                     text={content.cta.buttonText}
                     onSave={(value) => updateContent('cta', 'buttonText', value)}
@@ -505,9 +635,8 @@ const LandingPage = () => {
                   </>
                 )}
               </motion.button>
-              
               <button className="px-8 py-4 border-2 border-white text-white rounded-xl font-semibold text-lg hover:bg-white hover:text-blue-600 transition-all">
-                {isEditMode ? (
+                {isEditMode && isAdmin ? (
                   <EditableText
                     text={content.cta.secondaryText}
                     onSave={(value) => updateContent('cta', 'secondaryText', value)}
@@ -538,15 +667,23 @@ const LandingPage = () => {
         </div>
       </footer>
 
-      {/* Edit Mode Indicator */}
-      {isEditMode && (
+      {/* Edit Mode Indicator - Only visible for admin */}
+      {isEditMode && isAdmin && (
         <div className="fixed bottom-4 left-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
           <SafeIcon icon={FiEdit3} className="mr-2 inline" />
           Edit Mode Active - Click any text to edit
         </div>
       )}
-    </div>
-  );
-};
 
-export default LandingPage;
+      {/* Click outside to close user menu */}
+      {showUserMenu && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowUserMenu(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+export default LandingPage

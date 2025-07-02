@@ -1,168 +1,156 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import * as FiIcons from 'react-icons/fi';
-import SafeIcon from '../../common/SafeIcon';
+import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useAuth } from '../../context/AuthContext'
+import { authService } from '../../services/authService'
+import * as FiIcons from 'react-icons/fi'
+import SafeIcon from '../../common/SafeIcon'
 
-const { FiUsers, FiShield, FiEdit3, FiTrash2, FiPlus, FiSearch, FiFilter, FiMoreVertical, FiCheck, FiX, FiEye, FiLock, FiUnlock, FiUserPlus } = FiIcons;
+const { FiUsers, FiShield, FiEdit3, FiTrash2, FiPlus, FiSearch, FiFilter, FiMoreVertical, FiCheck, FiX, FiEye, FiLock, FiUnlock, FiUserPlus, FiSave, FiRefreshCw } = FiIcons
 
 const UserManagement = () => {
-  const [users, setUsers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Mock user data
-  useEffect(() => {
-    const mockUsers = [
-      {
-        id: 'u_001',
-        name: 'John Admin',
-        email: 'john.admin@edurefer.com',
-        role: 'admin',
-        status: 'active',
-        lastLogin: '2024-03-21T10:30:00Z',
-        createdAt: '2024-01-15T09:00:00Z',
-        permissions: ['all'],
-        avatar: 'JA',
-        department: 'Administration'
-      },
-      {
-        id: 'u_002',
-        name: 'Sarah Manager',
-        email: 'sarah.manager@edurefer.com',
-        role: 'manager',
-        status: 'active',
-        lastLogin: '2024-03-21T08:15:00Z',
-        createdAt: '2024-01-20T10:30:00Z',
-        permissions: ['view_analytics', 'manage_affiliates', 'view_reports'],
-        avatar: 'SM',
-        department: 'Operations'
-      },
-      {
-        id: 'u_003',
-        name: 'Mike Analyst',
-        email: 'mike.analyst@edurefer.com',
-        role: 'analyst',
-        status: 'active',
-        lastLogin: '2024-03-20T16:45:00Z',
-        createdAt: '2024-02-01T11:00:00Z',
-        permissions: ['view_analytics', 'view_reports'],
-        avatar: 'MA',
-        department: 'Analytics'
-      },
-      {
-        id: 'u_004',
-        name: 'Lisa Support',
-        email: 'lisa.support@edurefer.com',
-        role: 'support',
-        status: 'active',
-        lastLogin: '2024-03-21T09:20:00Z',
-        createdAt: '2024-02-10T14:15:00Z',
-        permissions: ['view_affiliates', 'basic_support'],
-        avatar: 'LS',
-        department: 'Customer Support'
-      },
-      {
-        id: 'u_005',
-        name: 'David Viewer',
-        email: 'david.viewer@edurefer.com',
-        role: 'viewer',
-        status: 'inactive',
-        lastLogin: '2024-03-15T12:00:00Z',
-        createdAt: '2024-02-20T16:30:00Z',
-        permissions: ['view_basic'],
-        avatar: 'DV',
-        department: 'External'
-      }
-    ];
-    
-    setTimeout(() => {
-      setUsers(mockUsers);
-      setLoading(false);
-    }, 1000);
-  }, []);
+  const { user: currentUser, token } = useAuth()
+  const [users, setUsers] = useState([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedRole, setSelectedRole] = useState('all')
+  const [selectedStatus, setSelectedStatus] = useState('all')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   const roles = [
     { id: 'admin', name: 'Administrator', color: 'red', permissions: ['all'] },
     { id: 'manager', name: 'Manager', color: 'blue', permissions: ['view_analytics', 'manage_affiliates', 'view_reports'] },
     { id: 'analyst', name: 'Analyst', color: 'green', permissions: ['view_analytics', 'view_reports'] },
     { id: 'support', name: 'Support', color: 'yellow', permissions: ['view_affiliates', 'basic_support'] },
-    { id: 'viewer', name: 'Viewer', color: 'gray', permissions: ['view_basic'] }
-  ];
+    { id: 'viewer', name: 'Viewer', color: 'gray', permissions: ['view_basic'] },
+    { id: 'user', name: 'User', color: 'gray', permissions: ['view_basic'] }
+  ]
 
-  const permissions = [
-    { id: 'all', name: 'Full Access', description: 'Complete system access' },
-    { id: 'view_analytics', name: 'View Analytics', description: 'Access to analytics dashboard' },
-    { id: 'manage_affiliates', name: 'Manage Affiliates', description: 'Create, edit, and manage affiliates' },
-    { id: 'view_reports', name: 'View Reports', description: 'Access to detailed reports' },
-    { id: 'view_affiliates', name: 'View Affiliates', description: 'Read-only access to affiliate data' },
-    { id: 'basic_support', name: 'Basic Support', description: 'Basic customer support functions' },
-    { id: 'view_basic', name: 'Basic View', description: 'Limited read-only access' }
-  ];
+  const loadUsers = async () => {
+    setLoading(true)
+    try {
+      const result = await authService.getUsers(token)
+      if (result.success) {
+        setUsers(result.users)
+      } else {
+        console.error('Failed to load users:', result.error)
+      }
+    } catch (error) {
+      console.error('Error loading users:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadUsers()
+  }, [token])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadUsers()
+    setRefreshing(false)
+  }
 
   const getRoleColor = (role) => {
-    const roleConfig = roles.find(r => r.id === role);
-    return roleConfig ? roleConfig.color : 'gray';
-  };
+    const roleConfig = roles.find(r => r.id === role)
+    return roleConfig ? roleConfig.color : 'gray'
+  }
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case true: return 'bg-green-100 text-green-800'
+      case false: return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
-  };
+  }
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole;
-    const matchesStatus = selectedStatus === 'all' || user.status === selectedStatus;
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesRole = selectedRole === 'all' || user.role === selectedRole
+    const matchesStatus = selectedStatus === 'all' || 
+                         (selectedStatus === 'active' && user.isActive) ||
+                         (selectedStatus === 'inactive' && !user.isActive)
+    
+    return matchesSearch && matchesRole && matchesStatus
+  })
 
-  const handleDeleteUser = (userId) => {
+  const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter(u => u.id !== userId));
+      const result = await authService.deleteUser(userId, token)
+      if (result.success) {
+        setUsers(users.filter(u => u.id !== userId))
+      } else {
+        alert(result.error || 'Failed to delete user')
+      }
     }
-  };
+  }
 
-  const handleToggleStatus = (userId) => {
-    setUsers(users.map(user => 
-      user.id === userId 
-        ? { ...user, status: user.status === 'active' ? 'inactive' : 'active' }
-        : user
-    ));
-  };
+  const handleToggleStatus = async (userId) => {
+    const userToUpdate = users.find(u => u.id === userId)
+    if (!userToUpdate) return
+
+    const result = await authService.updateUser(
+      userId, 
+      { 
+        firstName: userToUpdate.firstName,
+        lastName: userToUpdate.lastName,
+        role: userToUpdate.role,
+        isActive: !userToUpdate.isActive 
+      }, 
+      token
+    )
+
+    if (result.success) {
+      setUsers(users.map(user => 
+        user.id === userId 
+          ? { ...user, isActive: !user.isActive }
+          : user
+      ))
+    } else {
+      alert(result.error || 'Failed to update user status')
+    }
+  }
 
   const AddUserModal = () => {
     const [formData, setFormData] = useState({
-      name: '',
       email: '',
-      role: 'viewer',
-      department: '',
-      permissions: []
-    });
+      password: '',
+      firstName: '',
+      lastName: '',
+      role: 'user'
+    })
+    const [submitting, setSubmitting] = useState(false)
 
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      const newUser = {
-        id: `u_${Date.now()}`,
-        ...formData,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        lastLogin: null,
-        avatar: formData.name.split(' ').map(n => n[0]).join('').toUpperCase()
-      };
-      setUsers([...users, newUser]);
-      setShowAddModal(false);
-      setFormData({ name: '', email: '', role: 'viewer', department: '', permissions: [] });
-    };
+    const handleSubmit = async (e) => {
+      e.preventDefault()
+      setSubmitting(true)
+
+      try {
+        const result = await authService.register(formData, token)
+        if (result.success) {
+          await loadUsers() // Refresh the users list
+          setShowAddModal(false)
+          setFormData({
+            email: '',
+            password: '',
+            firstName: '',
+            lastName: '',
+            role: 'user'
+          })
+        } else {
+          alert(result.error || 'Failed to create user')
+        }
+      } catch (error) {
+        console.error('Error creating user:', error)
+        alert('Failed to create user')
+      } finally {
+        setSubmitting(false)
+      }
+    }
 
     return (
       <motion.div
@@ -190,20 +178,33 @@ const UserManagement = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter full name"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="First name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Last name"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
               <input
                 type="email"
                 required
@@ -215,7 +216,20 @@ const UserManagement = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+              <input
+                type="password"
+                required
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter password"
+                minLength={6}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
               <select
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
@@ -227,37 +241,35 @@ const UserManagement = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
-              <input
-                type="text"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter department"
-              />
-            </div>
-
             <div className="flex gap-3 pt-4">
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={submitting}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={submitting}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                Add User
+                {submitting ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    <SafeIcon icon={FiSave} />
+                    Add User
+                  </>
+                )}
               </button>
             </div>
           </form>
         </motion.div>
       </motion.div>
-    );
-  };
+    )
+  }
 
   if (loading) {
     return (
@@ -276,7 +288,22 @@ const UserManagement = () => {
           </div>
         </div>
       </div>
-    );
+    )
+  }
+
+  // Check if current user is admin
+  if (!currentUser?.isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <SafeIcon icon={FiLock} className="text-red-600 text-2xl" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
+          <p className="text-gray-600">You need administrator privileges to access user management.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -294,13 +321,23 @@ const UserManagement = () => {
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">User Management</h1>
                 <p className="text-gray-600">Manage user accounts, roles, and permissions</p>
               </div>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-              >
-                <SafeIcon icon={FiUserPlus} />
-                Add User
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                >
+                  <SafeIcon icon={FiRefreshCw} className={refreshing ? 'animate-spin' : ''} />
+                  Refresh
+                </button>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <SafeIcon icon={FiUserPlus} />
+                  Add User
+                </button>
+              </div>
             </div>
           </div>
 
@@ -337,7 +374,6 @@ const UserManagement = () => {
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
-                <option value="pending">Pending</option>
               </select>
             </div>
           </div>
@@ -350,7 +386,6 @@ const UserManagement = () => {
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">User</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Role</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Department</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Last Login</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
@@ -371,7 +406,9 @@ const UserManagement = () => {
                             {user.avatar}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-800">{user.name}</div>
+                            <div className="font-medium text-gray-800">
+                              {user.firstName} {user.lastName}
+                            </div>
                             <div className="text-sm text-gray-600">{user.email}</div>
                           </div>
                         </div>
@@ -382,12 +419,9 @@ const UserManagement = () => {
                           {roles.find(r => r.id === user.role)?.name}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {user.department}
-                      </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(user.status)}`}>
-                          {user.status}
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(user.isActive)}`}>
+                          {user.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
@@ -397,28 +431,20 @@ const UserManagement = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleToggleStatus(user.id)}
+                            disabled={user.id === currentUser.id}
                             className={`p-2 rounded-lg transition-colors ${
-                              user.status === 'active' 
+                              user.isActive 
                                 ? 'bg-red-100 text-red-600 hover:bg-red-200' 
                                 : 'bg-green-100 text-green-600 hover:bg-green-200'
-                            }`}
-                            title={user.status === 'active' ? 'Deactivate User' : 'Activate User'}
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            title={user.isActive ? 'Deactivate User' : 'Activate User'}
                           >
-                            <SafeIcon icon={user.status === 'active' ? FiLock : FiUnlock} className="text-sm" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowEditModal(true);
-                            }}
-                            className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
-                            title="Edit User"
-                          >
-                            <SafeIcon icon={FiEdit3} className="text-sm" />
+                            <SafeIcon icon={user.isActive ? FiLock : FiUnlock} className="text-sm" />
                           </button>
                           <button
                             onClick={() => handleDeleteUser(user.id)}
-                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                            disabled={user.id === currentUser.id}
+                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Delete User"
                           >
                             <SafeIcon icon={FiTrash2} className="text-sm" />
@@ -430,18 +456,18 @@ const UserManagement = () => {
                 </tbody>
               </table>
             </div>
-          </div>
 
-          {/* No Results */}
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <SafeIcon icon={FiUsers} className="text-gray-400 text-2xl" />
+            {/* No Results */}
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <SafeIcon icon={FiUsers} className="text-gray-400 text-2xl" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">No Users Found</h3>
+                <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">No Users Found</h3>
-              <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
-            </div>
-          )}
+            )}
+          </div>
         </motion.div>
       </div>
 
@@ -450,7 +476,7 @@ const UserManagement = () => {
         {showAddModal && <AddUserModal />}
       </AnimatePresence>
     </>
-  );
-};
+  )
+}
 
-export default UserManagement;
+export default UserManagement

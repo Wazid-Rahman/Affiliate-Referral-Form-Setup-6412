@@ -1,75 +1,89 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react'
+import { authService } from '../services/authService'
 
-const AuthContext = createContext();
+const AuthContext = createContext()
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = useContext(AuthContext)
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context;
-};
+  return context
+}
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Check for existing authentication on app load
-    const userId = localStorage.getItem('userId');
-    const token = localStorage.getItem('token');
-    const userEmail = localStorage.getItem('userEmail');
-    
-    if (userId && token) {
-      setIsAuthenticated(true);
-      setUser({
-        id: userId,
-        email: userEmail,
-        token: token
-      });
-    }
-    setLoading(false);
-  }, []);
+    const token = localStorage.getItem('authToken')
+    const userData = localStorage.getItem('currentUser')
 
-  const login = (userData) => {
-    const { userId, token, email, newUser } = userData;
+    if (token && userData) {
+      try {
+        const user = JSON.parse(userData)
+        const tokenData = authService.validateToken(token)
+        
+        if (tokenData) {
+          setUser(user)
+          setIsAuthenticated(true)
+        } else {
+          // Token expired, clear storage
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('currentUser')
+        }
+      } catch (error) {
+        console.error('Auth restoration error:', error)
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('currentUser')
+      }
+    }
     
-    localStorage.setItem('userId', userId);
-    localStorage.setItem('token', token);
-    localStorage.setItem('userEmail', email);
-    
-    setUser({
-      id: userId,
-      email: email,
-      token: token,
-      isNewUser: newUser
-    });
-    setIsAuthenticated(true);
-    
-    return newUser;
-  };
+    setLoading(false)
+  }, [])
+
+  const login = async (email, password) => {
+    try {
+      const result = await authService.login(email, password)
+      
+      if (result.success) {
+        localStorage.setItem('authToken', result.token)
+        localStorage.setItem('currentUser', JSON.stringify(result.user))
+        
+        setUser(result.user)
+        setIsAuthenticated(true)
+        
+        return { success: true, user: result.user }
+      } else {
+        return { success: false, error: result.error }
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      return { success: false, error: 'Login failed. Please try again.' }
+    }
+  }
 
   const logout = () => {
-    localStorage.removeItem('userId');
-    localStorage.removeItem('token');
-    localStorage.removeItem('userEmail');
-    
-    setUser(null);
-    setIsAuthenticated(false);
-  };
+    authService.logout()
+    setUser(null)
+    setIsAuthenticated(false)
+  }
 
   const value = {
     isAuthenticated,
     user,
     login,
     logout,
-    loading
-  };
+    loading,
+    isAdmin: user?.isAdmin || false,
+    token: localStorage.getItem('authToken')
+  }
 
   return (
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
-  );
-};
+  )
+}
